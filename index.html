@@ -1,0 +1,762 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+    <title>沉浸式英语跟读 | 多例句·图片场景·重复模式</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            font-family: system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif;
+        }
+
+        body {
+            background: linear-gradient(145deg, #f0f7ff 0%, #e6ecf3 100%);
+            margin: 0;
+            min-height: 100vh;
+            padding: 20px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .app-container {
+            max-width: 860px;
+            width: 100%;
+            margin: 0 auto;
+            background: rgba(255,255,255,0.92);
+            backdrop-filter: blur(2px);
+            border-radius: 48px;
+            box-shadow: 0 20px 35px -12px rgba(0,0,0,0.2);
+            overflow: hidden;
+        }
+
+        .view {
+            padding: 24px 22px 32px;
+        }
+
+        .hidden {
+            display: none;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        .header h1 {
+            font-size: 1.9rem;
+            font-weight: 700;
+            background: linear-gradient(135deg, #1e3c72, #2a5298);
+            background-clip: text;
+            -webkit-background-clip: text;
+            color: transparent;
+            margin: 0;
+        }
+
+        .sub {
+            color: #5a6e8a;
+            font-size: 0.8rem;
+        }
+
+        /* 主题卡片 */
+        .theme-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+            gap: 16px;
+            margin: 20px 0;
+        }
+
+        .theme-card {
+            background: white;
+            border-radius: 28px;
+            padding: 16px 12px;
+            text-align: center;
+            cursor: pointer;
+            transition: 0.2s;
+            border: 1px solid rgba(60,100,177,0.2);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.02);
+        }
+
+        .theme-card:hover { transform: translateY(-3px); background: #fff; border-color: #3c64b1; }
+
+        /* 控制栏 */
+        .control-bar {
+            background: #eef2fa;
+            border-radius: 40px;
+            padding: 12px 18px;
+            margin: 16px 0;
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: space-between;
+            gap: 12px;
+            align-items: center;
+        }
+
+        .ctrl-group {
+            display: flex;
+            gap: 12px;
+            align-items: center;
+            background: white;
+            padding: 4px 12px;
+            border-radius: 40px;
+        }
+
+        .ctrl-group label {
+            font-weight: 600;
+            font-size: 0.8rem;
+        }
+
+        select, input[type="number"] {
+            background: #f8fafd;
+            border: 1px solid #bdc4d0;
+            border-radius: 30px;
+            padding: 6px 12px;
+            font-size: 0.85rem;
+        }
+
+        .voice-btn {
+            background: transparent;
+            border: none;
+            padding: 6px 14px;
+            border-radius: 30px;
+            font-weight: 600;
+            cursor: pointer;
+        }
+
+        .voice-active {
+            background: #2a5298;
+            color: white;
+        }
+
+        /* 单词卡片 - 新增图片右侧布局 */
+        .word-card {
+            background: white;
+            border-radius: 32px;
+            padding: 18px;
+            margin-bottom: 20px;
+            box-shadow: 0 6px 14px rgba(0,0,0,0.05);
+            transition: 0.1s;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 16px;
+        }
+
+        .word-content {
+            flex: 2;
+            min-width: 200px;
+        }
+
+        .word-image {
+            flex-shrink: 0;
+            width: 100px;
+            height: 100px;
+            border-radius: 20px;
+            object-fit: cover;
+            background: #f0f3f8;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.7rem;
+            color: #7c8ea0;
+            border: 1px solid #e2e8f0;
+        }
+
+        .word-image img {
+            width: 100%;
+            height: 100%;
+            border-radius: 20px;
+            object-fit: cover;
+        }
+
+        .word-header {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: space-between;
+            align-items: baseline;
+            border-bottom: 2px dashed #dce5f0;
+            padding-bottom: 8px;
+            margin-bottom: 12px;
+        }
+
+        .word-title {
+            font-size: 1.8rem;
+            font-weight: 800;
+            color: #0b2b44;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+
+        .badge {
+            background: #e3edfc;
+            font-size: 0.7rem;
+            padding: 4px 10px;
+            border-radius: 40px;
+        }
+
+        .meaning {
+            font-size: 1rem;
+            color: #2c6280;
+            margin: 6px 0;
+        }
+
+        .phonetic {
+            font-family: monospace;
+            background: #eef3fc;
+            padding: 2px 8px;
+            border-radius: 20px;
+            font-size: 0.75rem;
+        }
+
+        .examples-section {
+            background: #f9fbfe;
+            border-radius: 24px;
+            padding: 12px;
+            margin: 12px 0;
+        }
+
+        .example-item {
+            background: white;
+            border-left: 5px solid #4caf50;
+            padding: 10px 12px;
+            margin-bottom: 10px;
+            border-radius: 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        .example-text {
+            flex: 1;
+            font-size: 0.9rem;
+            color: #1f3b4c;
+        }
+
+        .btn-sm {
+            background: #eef2fa;
+            border: none;
+            padding: 6px 14px;
+            border-radius: 30px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            cursor: pointer;
+        }
+
+        .btn-primary {
+            background: #2a5298;
+            color: white;
+        }
+
+        .video-area {
+            margin-top: 12px;
+            background: #f1f5f9;
+            border-radius: 24px;
+            padding: 10px;
+        }
+
+        .video-embed {
+            width: 100%;
+            border-radius: 20px;
+            min-height: 180px;
+            background: #0002;
+        }
+
+        iframe {
+            width: 100%;
+            border-radius: 16px;
+        }
+
+        .add-word-section {
+            background: #ffffffcc;
+            backdrop-filter: blur(4px);
+            border-radius: 28px;
+            padding: 16px;
+            margin-top: 20px;
+        }
+
+        .form-row {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-bottom: 12px;
+        }
+
+        input, textarea, select {
+            flex: 1;
+            padding: 10px 14px;
+            border-radius: 60px;
+            border: 1px solid #cbd5e1;
+            background: white;
+        }
+
+        textarea {
+            border-radius: 20px;
+        }
+
+        button {
+            background: #2a5298;
+            border: none;
+            color: white;
+            font-weight: 600;
+            padding: 8px 18px;
+            border-radius: 40px;
+            cursor: pointer;
+        }
+
+        .back-btn {
+            background: #6c86a3;
+            margin-bottom: 12px;
+        }
+
+        .dynamic-example-list {
+            background: #eef2fa;
+            border-radius: 24px;
+            padding: 8px;
+            margin-top: 6px;
+        }
+
+        @media (max-width: 550px) {
+            .word-card { flex-direction: column; }
+            .word-image { width: 100%; height: auto; max-height: 160px; }
+            .word-image img { max-height: 160px; }
+        }
+    </style>
+</head>
+<body>
+<div class="app-container" id="app">
+    <!-- 主题选择页 -->
+    <div id="themeView" class="view">
+        <div class="header">
+            <h1>🎧 沉浸跟读坊</h1>
+            <div class="sub">多例句 · 图片视频 · 智能跟读</div>
+        </div>
+        <div class="theme-grid" id="themeGrid"></div>
+        <div class="add-word-section">
+            <div style="font-weight:700;">➕ 创建新单词（支持图片/多例句/视频）</div>
+            <div class="form-row">
+                <input type="text" id="newWord" placeholder="单词" autocomplete="off">
+                <input type="text" id="newMeaning" placeholder="中文释义">
+            </div>
+            <div class="form-row">
+                <input type="text" id="newPhonetic" placeholder="音标 (可选)">
+                <select id="newPos"><option>名词</option><option>动词</option><option>形容词</option><option>副词</option><option>短语</option></select>
+            </div>
+            <div class="form-row">
+                <input type="text" id="newImageUrl" placeholder="图片URL (可选) 直接粘贴图片链接">
+                <input type="text" id="newVideoUrl" placeholder="视频链接 (YouTube 或 任意视频URL) 可选">
+            </div>
+            <div><label>📝 例句列表 (至少一个，可添加多个): </label></div>
+            <div id="dynamicExamplesContainer">
+                <div class="form-row example-input-group">
+                    <input type="text" class="example-input" placeholder="例句1: e.g. This view is incredible!" style="flex:4;">
+                    <button type="button" class="removeExampleBtn" style="background:#b91c1c; padding:6px 12px;" disabled>✖</button>
+                </div>
+            </div>
+            <button id="addExampleFieldBtn" style="background:#4b6e8a; margin-bottom:12px;">+ 增加另一个例句</button>
+            <button id="submitNewWordBtn">📖 添加到当前主题</button>
+            <div class="sub" style="margin-top:8px;">* 默认主题为第一个，点击主题后录入单词会归类到当前激活主题</div>
+        </div>
+    </div>
+
+    <!-- 单词学习页 -->
+    <div id="wordView" class="view hidden">
+        <button class="back-btn" id="backToThemeBtn">← 主题列表</button>
+        <div class="header">
+            <h2 id="currentThemeTitle">主题</h2>
+            <div class="sub" id="themeDesc">跟读模式 | 可调重复次数与播放顺序</div>
+        </div>
+        <!-- 全局控制栏 -->
+        <div class="control-bar">
+            <div class="ctrl-group">
+                <label>🔁 重复次数</label>
+                <input type="number" id="repeatCount" min="1" max="6" value="3" step="1" style="width:70px;">
+            </div>
+            <div class="ctrl-group">
+                <label>🎭 播放模式</label>
+                <select id="playModeSelect">
+                    <option value="word_only">📣 仅单词</option>
+                    <option value="examples_only">📚 仅所有例句 (顺序)</option>
+                    <option value="word_then_examples" selected>🔊 单词 → 所有例句</option>
+                </select>
+            </div>
+            <div class="ctrl-group">
+                <button id="ukVoiceBtn2" class="voice-btn">🇬🇧 英式</button>
+                <button id="usVoiceBtn2" class="voice-btn voice-active">🇺🇸 美式</button>
+            </div>
+        </div>
+        <div id="wordsContainer"></div>
+        <div class="add-word-section" style="margin-top:12px;">
+            <div style="font-weight:600;">✨ 快速添加单词（含图片）</div>
+            <div class="form-row"><input id="quickWord" placeholder="单词"><input id="quickMeaning" placeholder="释义"></div>
+            <div class="form-row"><input id="quickImageUrl" placeholder="图片URL (可选)"></div>
+            <div id="quickExamplesArea"><input type="text" id="quickExample1" placeholder="例句1" style="margin-bottom:5px;"></div>
+            <button id="addQuickExampleBtn" style="background:#4b6e8a;">+ 例句</button>
+            <button id="quickAddFullBtn" style="margin-left:8px;">➕ 快速添加</button>
+        </div>
+    </div>
+</div>
+
+<script>
+    // ---------- 初始数据（支持多例句+视频+图片）----------
+    let themesData = {
+        "travel": {
+            name: "✈️ 旅行", desc: "机场/观光/问路",
+            words: [
+                { word: "destination", meaning: "目的地", phonetic: "/ˌdestɪˈneɪʃn/", pos: "名词", examples: ["Our final destination is Paris, the city of love.", "We reached our destination after a long flight."], videoUrl: "", imageUrl: "https://picsum.photos/id/104/200/150", spellingHint: "des·ti·na·tion" },
+                { word: "itinerary", meaning: "行程", phonetic: "/aɪˈtɪnərəri/", pos: "名词", examples: ["Can you share the travel itinerary with me?", "The itinerary includes a visit to the museum."], videoUrl: "", imageUrl: "https://picsum.photos/id/15/200/150" },
+                { word: "boarding pass", meaning: "登机牌", phonetic: "/ˈbɔːrdɪŋ pæs/", pos: "短语", examples: ["Don't lose your boarding pass before boarding.", "Please show your boarding pass at gate 12."], videoUrl: "", imageUrl: "https://picsum.photos/id/133/200/150" }
+            ]
+        },
+        "work": {
+            name: "💼 职场", desc: "商务/会议",
+            words: [
+                { word: "deadline", meaning: "截止期限", phonetic: "/ˈdedlaɪn/", pos: "名词", examples: ["We have to submit the report before the deadline.", "The deadline is approaching quickly."], videoUrl: "", imageUrl: "https://picsum.photos/id/20/200/150" },
+                { word: "negotiate", meaning: "谈判", phonetic: "/nɪˈɡəʊʃieɪt/", pos: "动词", examples: ["It's time to negotiate the contract terms.", "They managed to negotiate a better deal."], videoUrl: "", imageUrl: "https://picsum.photos/id/26/200/150" }
+            ]
+        },
+        "daily": {
+            name: "🏠 日常", desc: "生活口语",
+            words: [
+                { word: "groceries", meaning: "杂货", phonetic: "/ˈɡrəʊsəriz/", pos: "名词", examples: ["I need to pick up some groceries after work.", "She bought fresh groceries for dinner."], videoUrl: "", imageUrl: "https://picsum.photos/id/30/200/150" },
+                { word: "commute", meaning: "通勤", phonetic: "/kəˈmjuːt/", pos: "动词", examples: ["My daily commute takes about an hour.", "Many people commute by subway."], videoUrl: "", imageUrl: "https://picsum.photos/id/13/200/150" }
+            ]
+        }
+    };
+
+    // 兼容旧数据，为每个单词增加imageUrl字段
+    for(let k in themesData) {
+        themesData[k].words = themesData[k].words.map(w => {
+            if(!w.examples) w.examples = [w.example || `Example of ${w.word}.`];
+            if(!w.spellingHint) w.spellingHint = w.word.split('').join('·').slice(0,10);
+            if(!w.videoUrl) w.videoUrl = "";
+            if(!w.imageUrl) w.imageUrl = "";
+            delete w.example;
+            return w;
+        });
+    }
+
+    let currentThemeKey = "travel";
+    let currentVoiceType = "US";
+    let repeatCount = 3;
+    let playMode = "word_then_examples";
+    let speechQueue = [];
+    let isSpeaking = false;
+
+    // DOM
+    const themeView = document.getElementById('themeView');
+    const wordView = document.getElementById('wordView');
+    const themeGrid = document.getElementById('themeGrid');
+    const wordsContainer = document.getElementById('wordsContainer');
+    const currentThemeTitleSpan = document.getElementById('currentThemeTitle');
+    const themeDescSpan = document.getElementById('themeDesc');
+    const repeatCountInput = document.getElementById('repeatCount');
+    const playModeSelect = document.getElementById('playModeSelect');
+    const backBtn = document.getElementById('backToThemeBtn');
+    const ukBtn = document.getElementById('ukVoiceBtn2');
+    const usBtn = document.getElementById('usVoiceBtn2');
+    const submitNewWordBtn = document.getElementById('submitNewWordBtn');
+    const quickAddFullBtn = document.getElementById('quickAddFullBtn');
+    const addExampleFieldBtn = document.getElementById('addExampleFieldBtn');
+    const addQuickExampleBtn = document.getElementById('addQuickExampleBtn');
+
+    function saveToLocal() { localStorage.setItem('multiex_themes_img', JSON.stringify(themesData)); }
+    function loadLocal() {
+        let data = localStorage.getItem('multiex_themes_img');
+        if(data) {
+            try {
+                let parsed = JSON.parse(data);
+                for(let k in parsed) themesData[k] = parsed[k];
+            } catch(e) {}
+        }
+    }
+
+    // 发音核心
+    function speakText(text) {
+        return new Promise((resolve) => {
+            if(!text.trim()) { resolve(); return; }
+            let utterance = new SpeechSynthesisUtterance(text);
+            utterance.lang = currentVoiceType === "US" ? "en-US" : "en-GB";
+            utterance.rate = 0.9;
+            utterance.onend = () => { resolve(); };
+            utterance.onerror = () => { resolve(); };
+            window.speechSynthesis.cancel();
+            window.speechSynthesis.speak(utterance);
+        });
+    }
+
+    async function playWordAndExamples(wordObj, mode, repeats) {
+        let tasks = [];
+        if(mode === "word_only") {
+            for(let i=0; i<repeats; i++) tasks.push(() => speakText(wordObj.word));
+        } 
+        else if(mode === "examples_only") {
+            for(let r=0; r<repeats; r++) {
+                for(let ex of wordObj.examples) tasks.push(() => speakText(ex));
+            }
+        }
+        else if(mode === "word_then_examples") {
+            for(let cycle=0; cycle<repeats; cycle++) {
+                tasks.push(() => speakText(wordObj.word));
+                for(let ex of wordObj.examples) tasks.push(() => speakText(ex));
+            }
+        }
+        for(let task of tasks) {
+            if(isSpeaking) window.speechSynthesis.cancel();
+            await task();
+            await new Promise(r => setTimeout(r, 300));
+        }
+    }
+
+    async function playSingleWord(word, repeats) {
+        for(let i=0; i<repeats; i++) {
+            await speakText(word);
+            await new Promise(r => setTimeout(r, 200));
+        }
+    }
+    async function playSingleExample(exampleText, repeats) {
+        for(let i=0; i<repeats; i++) {
+            await speakText(exampleText);
+            await new Promise(r => setTimeout(r, 200));
+        }
+    }
+
+    // 渲染单词列表 (带图片右侧)
+    function renderWords() {
+        const theme = themesData[currentThemeKey];
+        if(!theme) return;
+        currentThemeTitleSpan.innerText = theme.name;
+        themeDescSpan.innerText = theme.desc + ` | 重复${repeatCount}次 · 模式:${playModeSelect.options[playModeSelect.selectedIndex]?.text}`;
+        if(!theme.words.length) {
+            wordsContainer.innerHTML = `<div class="empty-words">📭 暂无单词，快添加第一个吧~</div>`;
+            return;
+        }
+        wordsContainer.innerHTML = "";
+        theme.words.forEach((wordObj, idx) => {
+            const card = document.createElement('div');
+            card.className = 'word-card';
+            // 图片区域
+            let imageHtml = `<div class="word-image">`;
+            if(wordObj.imageUrl && wordObj.imageUrl.trim() !== "") {
+                imageHtml += `<img src="${escapeHtml(wordObj.imageUrl)}" alt="${escapeHtml(wordObj.word)}" loading="lazy" onerror="this.onerror=null;this.src='https://via.placeholder.com/100x100?text=No+Image';">`;
+            } else {
+                imageHtml += `<div style="display:flex; align-items:center; justify-content:center; width:100%; height:100%; background:#eef2fa; border-radius:20px;">🖼️ 无图</div>`;
+            }
+            imageHtml += `</div>`;
+            // 例句HTML
+            let examplesHtml = `<div class="examples-section"><strong>📌 场景例句 (${wordObj.examples.length})：</strong>`;
+            wordObj.examples.forEach((ex, exIdx) => {
+                examplesHtml += `
+                    <div class="example-item">
+                        <span class="example-text">💬 ${escapeHtml(ex)}</span>
+                        <button class="btn-sm play-example-btn" data-word-idx="${idx}" data-ex-idx="${exIdx}">🔊 跟读此例句</button>
+                    </div>
+                `;
+            });
+            examplesHtml += `</div>`;
+            // 视频区域
+            let videoHtml = '';
+            if(wordObj.videoUrl && wordObj.videoUrl.trim() !== "") {
+                let embedUrl = wordObj.videoUrl;
+                if(embedUrl.includes("youtube.com/watch?v=")) {
+                    let vid = embedUrl.split('v=')[1]?.split('&')[0];
+                    if(vid) embedUrl = `https://www.youtube.com/embed/${vid}`;
+                } else if(embedUrl.includes("youtu.be/")) {
+                    let vid = embedUrl.split('/').pop();
+                    embedUrl = `https://www.youtube.com/embed/${vid}`;
+                }
+                videoHtml = `<div class="video-area"><strong>🎬 视频场景：</strong><div class="video-embed"><iframe src="${embedUrl}" frameborder="0" allowfullscreen style="width:100%; height:180px;"></iframe></div></div>`;
+            }
+            const contentDiv = document.createElement('div');
+            contentDiv.className = 'word-content';
+            contentDiv.innerHTML = `
+                <div class="word-header">
+                    <div class="word-title">${escapeHtml(wordObj.word)} <span class="badge">${wordObj.pos || '单词'}</span></div>
+                    <button class="btn-sm play-word-main-btn" data-word-idx="${idx}">🎧 单词跟读 (x${repeatCount})</button>
+                </div>
+                <div class="meaning">📖 ${escapeHtml(wordObj.meaning)} ${wordObj.phonetic ? `<span class="phonetic">${escapeHtml(wordObj.phonetic)}</span>` : ''}</div>
+                <div class="spelling-hint" style="font-size:0.7rem; color:#6c8eae;">🔡 自然拼读: ${wordObj.spellingHint || wordObj.word}</div>
+                ${examplesHtml}
+                ${videoHtml}
+                <div style="margin-top:12px; display:flex; gap:8px; justify-content:flex-end;">
+                    <button class="btn-sm smart-play-btn" data-word-idx="${idx}">⚡ 智能跟读 (按当前模式+重复)</button>
+                </div>
+            `;
+            card.appendChild(contentDiv);
+            card.insertAdjacentHTML('beforeend', imageHtml);
+            wordsContainer.appendChild(card);
+        });
+        // 绑定按钮
+        document.querySelectorAll('.play-word-main-btn').forEach(btn => {
+            btn.addEventListener('click', async (e) => {
+                let idx = parseInt(btn.dataset.wordIdx);
+                let w = themesData[currentThemeKey].words[idx];
+                await playSingleWord(w.word, repeatCount);
+            });
+        });
+        document.querySelectorAll('.play-example-btn').forEach(btn => {
+            btn.addEventListener('click', async (e) => {
+                let wordIdx = parseInt(btn.dataset.wordIdx);
+                let exIdx = parseInt(btn.dataset.exIdx);
+                let exText = themesData[currentThemeKey].words[wordIdx].examples[exIdx];
+                await playSingleExample(exText, repeatCount);
+            });
+        });
+        document.querySelectorAll('.smart-play-btn').forEach(btn => {
+            btn.addEventListener('click', async (e) => {
+                let idx = parseInt(btn.dataset.wordIdx);
+                let wordObj = themesData[currentThemeKey].words[idx];
+                let mode = playModeSelect.value;
+                await playWordAndExamples(wordObj, mode, repeatCount);
+            });
+        });
+    }
+
+    // 主题列表渲染
+    function renderThemeSelection() {
+        themeGrid.innerHTML = '';
+        for(let [key, theme] of Object.entries(themesData)) {
+            let card = document.createElement('div');
+            card.className = 'theme-card';
+            card.innerHTML = `<h3>${theme.name}</h3><p>${theme.desc}</p><small>📖 ${theme.words.length}词 | 图片/例句</small>`;
+            card.addEventListener('click', () => {
+                currentThemeKey = key;
+                renderWords();
+                showWordView();
+            });
+            themeGrid.appendChild(card);
+        }
+    }
+
+    // 添加单词
+    function addWordToCurrentTheme(wordObj) {
+        let theme = themesData[currentThemeKey];
+        if(!theme) theme = themesData[Object.keys(themesData)[0]];
+        let newWord = {
+            word: wordObj.word,
+            meaning: wordObj.meaning,
+            phonetic: wordObj.phonetic || '',
+            pos: wordObj.pos || '单词',
+            examples: wordObj.examples && wordObj.examples.length ? wordObj.examples : ["例句待补充"],
+            videoUrl: wordObj.videoUrl || '',
+            imageUrl: wordObj.imageUrl || '',
+            spellingHint: wordObj.word.split('').join('·').slice(0,12)
+        };
+        theme.words.push(newWord);
+        saveToLocal();
+        if(wordView.classList.contains('hidden')) renderThemeSelection();
+        else renderWords();
+    }
+
+    // 表单收集多例句
+    function collectFormExamples() {
+        let examples = [];
+        document.querySelectorAll('#dynamicExamplesContainer .example-input').forEach(inp => {
+            if(inp.value.trim()) examples.push(inp.value.trim());
+        });
+        if(examples.length === 0) examples.push("新建的示例句子，快来替换它！");
+        return examples;
+    }
+
+    function resetDynamicForm() {
+        let container = document.getElementById('dynamicExamplesContainer');
+        container.innerHTML = '';
+        let div = document.createElement('div');
+        div.className = 'form-row example-input-group';
+        div.innerHTML = `<input type="text" class="example-input" placeholder="例句1: 贴合主题的句子" style="flex:4;"><button type="button" class="removeExampleBtn" style="background:#b91c1c; padding:6px 12px;" disabled>✖</button>`;
+        container.appendChild(div);
+    }
+
+    function addExtraExampleField(containerId = 'dynamicExamplesContainer') {
+        let container = document.getElementById(containerId);
+        let div = document.createElement('div');
+        div.className = 'form-row example-input-group';
+        div.innerHTML = `<input type="text" class="example-input" placeholder="新例句" style="flex:4;"><button type="button" class="removeExampleBtn" style="background:#b91c1c; padding:6px 12px;">✖</button>`;
+        let removeBtn = div.querySelector('.removeExampleBtn');
+        removeBtn.addEventListener('click', () => { div.remove(); });
+        container.appendChild(div);
+    }
+
+    let quickExampleCount = 1;
+    function refreshQuickExamples() {
+        let area = document.getElementById('quickExamplesArea');
+        area.innerHTML = '';
+        for(let i=1; i<=quickExampleCount; i++) {
+            let inp = document.createElement('input');
+            inp.type = 'text';
+            inp.placeholder = `例句${i}`;
+            inp.id = `quickEx${i}`;
+            inp.style.marginBottom = '5px';
+            area.appendChild(inp);
+        }
+    }
+
+    function bindEvents() {
+        repeatCountInput.addEventListener('change', () => { repeatCount = parseInt(repeatCountInput.value) || 3; renderWords(); });
+        playModeSelect.addEventListener('change', () => { renderWords(); });
+        ukBtn.addEventListener('click', () => { currentVoiceType = "UK"; ukBtn.classList.add('voice-active'); usBtn.classList.remove('voice-active'); });
+        usBtn.addEventListener('click', () => { currentVoiceType = "US"; usBtn.classList.add('voice-active'); ukBtn.classList.remove('voice-active'); });
+        backBtn.addEventListener('click', () => { themeView.classList.remove('hidden'); wordView.classList.add('hidden'); renderThemeSelection(); });
+
+        submitNewWordBtn.addEventListener('click', () => {
+            let word = document.getElementById('newWord').value.trim();
+            let meaning = document.getElementById('newMeaning').value.trim();
+            if(!word || !meaning) { alert("单词和释义不能空"); return; }
+            let phonetic = document.getElementById('newPhonetic').value;
+            let pos = document.getElementById('newPos').value;
+            let videoUrl = document.getElementById('newVideoUrl').value;
+            let imageUrl = document.getElementById('newImageUrl').value;
+            let examples = collectFormExamples();
+            addWordToCurrentTheme({ word, meaning, phonetic, pos, examples, videoUrl, imageUrl });
+            alert(`✅ 已添加 "${word}" 至 ${themesData[currentThemeKey].name}`);
+            document.getElementById('newWord').value = '';
+            document.getElementById('newMeaning').value = '';
+            document.getElementById('newPhonetic').value = '';
+            document.getElementById('newVideoUrl').value = '';
+            document.getElementById('newImageUrl').value = '';
+            resetDynamicForm();
+        });
+        addExampleFieldBtn.addEventListener('click', () => { addExtraExampleField('dynamicExamplesContainer'); });
+
+        quickAddFullBtn.addEventListener('click', () => {
+            let word = document.getElementById('quickWord').value.trim();
+            let meaning = document.getElementById('quickMeaning').value.trim();
+            let imageUrl = document.getElementById('quickImageUrl').value.trim();
+            if(!word || !meaning) { alert("请填写单词和释义"); return; }
+            let examples = [];
+            for(let i=1; i<=quickExampleCount; i++) {
+                let exVal = document.getElementById(`quickEx${i}`)?.value.trim();
+                if(exVal) examples.push(exVal);
+            }
+            if(examples.length === 0) examples.push(`Example using ${word}`);
+            addWordToCurrentTheme({ word, meaning, phonetic: "", pos: "自定义", examples, videoUrl: "", imageUrl });
+            document.getElementById('quickWord').value = '';
+            document.getElementById('quickMeaning').value = '';
+            document.getElementById('quickImageUrl').value = '';
+            refreshQuickExamples();
+            renderWords();
+        });
+        addQuickExampleBtn.addEventListener('click', () => {
+            quickExampleCount++;
+            refreshQuickExamples();
+        });
+    }
+
+    function showWordView() { themeView.classList.add('hidden'); wordView.classList.remove('hidden'); renderWords(); }
+    function showThemeView() { wordView.classList.add('hidden'); themeView.classList.remove('hidden'); renderThemeSelection(); }
+
+    function escapeHtml(s) { if(!s) return ''; return s.replace(/[&<>]/g, function(m){ return {'&':'&amp;','<':'&lt;','>':'&gt;'}[m];}); }
+
+    // 启动
+    loadLocal();
+    renderThemeSelection();
+    bindEvents();
+    resetDynamicForm();
+    refreshQuickExamples();
+    showThemeView();
+</script>
+</body>
+</html>
