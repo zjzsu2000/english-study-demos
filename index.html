@@ -246,6 +246,11 @@
             cursor: pointer;
         }
 
+        .read-word-btn {
+            background: #ffcc4d;
+            color: #4a3200;
+        }
+
         .btn-primary {
             background: #2a5298;
             color: white;
@@ -445,6 +450,7 @@
     let playMode = "word_then_examples";
     let speechQueue = [];
     let isSpeaking = false;
+    const speechSupported = 'speechSynthesis' in window && 'SpeechSynthesisUtterance' in window;
 
     // DOM
     const themeView = document.getElementById('themeView');
@@ -477,6 +483,7 @@
     // 发音核心
     function speakText(text) {
         return new Promise((resolve) => {
+            if(!speechSupported) { resolve(); return; }
             if(!text.trim()) { resolve(); return; }
             let utterance = new SpeechSynthesisUtterance(text);
             utterance.lang = currentVoiceType === "US" ? "en-US" : "en-GB";
@@ -549,10 +556,13 @@
             // 例句HTML
             let examplesHtml = `<div class="examples-section"><strong>📌 场景例句 (${wordObj.examples.length})：</strong>`;
             wordObj.examples.forEach((ex, exIdx) => {
+                const exampleReadButtonHtml = speechSupported
+                    ? `<button class="btn-sm play-example-btn" data-word-idx="${idx}" data-ex-idx="${exIdx}" type="button">🔊 跟读此例句</button>`
+                    : '';
                 examplesHtml += `
                     <div class="example-item">
                         <span class="example-text">💬 ${escapeHtml(ex)}</span>
-                        <button class="btn-sm play-example-btn" data-word-idx="${idx}" data-ex-idx="${exIdx}">🔊 跟读此例句</button>
+                        ${exampleReadButtonHtml}
                     </div>
                 `;
             });
@@ -572,17 +582,23 @@
             }
             const contentDiv = document.createElement('div');
             contentDiv.className = 'word-content';
+            const readButtonHtml = speechSupported
+                ? `<button class="btn-sm read-word-btn" data-word-idx="${idx}" type="button">🔊 Read</button>`
+                : '';
+            const smartPlayButtonHtml = speechSupported
+                ? `<button class="btn-sm smart-play-btn" data-word-idx="${idx}" type="button">⚡ 智能跟读 (按当前模式+重复)</button>`
+                : '';
             contentDiv.innerHTML = `
                 <div class="word-header">
                     <div class="word-title">${escapeHtml(wordObj.word)} <span class="badge">${wordObj.pos || '单词'}</span></div>
-                    <button class="btn-sm play-word-main-btn" data-word-idx="${idx}">🎧 单词跟读 (x${repeatCount})</button>
+                    ${readButtonHtml}
                 </div>
                 <div class="meaning">📖 ${escapeHtml(wordObj.meaning)} ${wordObj.phonetic ? `<span class="phonetic">${escapeHtml(wordObj.phonetic)}</span>` : ''}</div>
                 <div class="spelling-hint" style="font-size:0.7rem; color:#6c8eae;">🔡 自然拼读: ${wordObj.spellingHint || wordObj.word}</div>
                 ${examplesHtml}
                 ${videoHtml}
                 <div style="margin-top:12px; display:flex; gap:8px; justify-content:flex-end;">
-                    <button class="btn-sm smart-play-btn" data-word-idx="${idx}">⚡ 智能跟读 (按当前模式+重复)</button>
+                    ${smartPlayButtonHtml}
                 </div>
             `;
             card.appendChild(contentDiv);
@@ -590,11 +606,11 @@
             wordsContainer.appendChild(card);
         });
         // 绑定按钮
-        document.querySelectorAll('.play-word-main-btn').forEach(btn => {
+        document.querySelectorAll('.read-word-btn').forEach(btn => {
             btn.addEventListener('click', async (e) => {
                 let idx = parseInt(btn.dataset.wordIdx);
                 let w = themesData[currentThemeKey].words[idx];
-                await playSingleWord(w.word, repeatCount);
+                await speakText(w.word);
             });
         });
         document.querySelectorAll('.play-example-btn').forEach(btn => {
