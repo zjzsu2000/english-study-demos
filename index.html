@@ -230,10 +230,25 @@
             flex-wrap: wrap;
         }
 
-        .example-text {
+        .example-copy {
             flex: 1;
+            min-width: 220px;
+        }
+
+        .example-text {
+            display: block;
             font-size: 0.9rem;
             color: #1f3b4c;
+        }
+
+        .example-translation {
+            display: block;
+            margin-top: 5px;
+            padding: 5px 8px;
+            border-radius: 14px;
+            background: #fff7d6;
+            color: #6d5200;
+            font-size: 0.82rem;
         }
 
         .btn-sm {
@@ -249,6 +264,24 @@
         .read-word-btn {
             background: #ffcc4d;
             color: #4a3200;
+        }
+
+        .delete-word-btn {
+            background: #ffe4e6;
+            color: #8a1f1f;
+        }
+
+        .speech-control-btn {
+            background: #f97316;
+            color: white;
+        }
+
+        .word-actions {
+            margin-top: 12px;
+            display: flex;
+            gap: 8px;
+            justify-content: flex-end;
+            flex-wrap: wrap;
         }
 
         .btn-primary {
@@ -324,10 +357,31 @@
             margin-top: 6px;
         }
 
+        .example-input-group input {
+            min-width: 180px;
+        }
+
+        .batch-input {
+            width: 100%;
+            min-height: 110px;
+            resize: vertical;
+            line-height: 1.45;
+        }
+
+        .batch-status {
+            margin-top: 8px;
+            padding: 8px 10px;
+            border-radius: 16px;
+            background: #fff7d6;
+            color: #6d5200;
+            font-size: 0.82rem;
+        }
+
         @media (max-width: 550px) {
             .word-card { flex-direction: column; }
             .word-image { width: 100%; height: auto; max-height: 160px; }
             .word-image img { max-height: 160px; }
+            .ctrl-group { width: 100%; justify-content: center; }
         }
     </style>
 </head>
@@ -357,7 +411,8 @@
             <div><label>📝 例句列表 (至少一个，可添加多个): </label></div>
             <div id="dynamicExamplesContainer">
                 <div class="form-row example-input-group">
-                    <input type="text" class="example-input" placeholder="例句1: e.g. This view is incredible!" style="flex:4;">
+                    <input type="text" class="example-input" placeholder="English example: This view is incredible!">
+                    <input type="text" class="example-zh-input" placeholder="中文例句翻译">
                     <button type="button" class="removeExampleBtn" style="background:#b91c1c; padding:6px 12px;" disabled>✖</button>
                 </div>
             </div>
@@ -392,15 +447,28 @@
                 <button id="ukVoiceBtn2" class="voice-btn">🇬🇧 英式</button>
                 <button id="usVoiceBtn2" class="voice-btn voice-active">🇺🇸 美式</button>
             </div>
+            <div class="ctrl-group hidden" id="speechControlGroup">
+                <button id="pauseResumeBtn" class="speech-control-btn" type="button">⏸ Pause</button>
+                <button id="stopSpeechBtn" class="speech-control-btn" type="button">⏹ Stop</button>
+            </div>
         </div>
         <div id="wordsContainer"></div>
         <div class="add-word-section" style="margin-top:12px;">
             <div style="font-weight:600;">✨ 快速添加单词（含图片）</div>
             <div class="form-row"><input id="quickWord" placeholder="单词"><input id="quickMeaning" placeholder="释义"></div>
             <div class="form-row"><input id="quickImageUrl" placeholder="图片URL (可选)"></div>
-            <div id="quickExamplesArea"><input type="text" id="quickExample1" placeholder="例句1" style="margin-bottom:5px;"></div>
+            <div id="quickExamplesArea">
+                <div class="form-row example-input-group">
+                    <input type="text" id="quickExEn1" placeholder="English example">
+                    <input type="text" id="quickExZh1" placeholder="中文例句翻译">
+                </div>
+            </div>
             <button id="addQuickExampleBtn" style="background:#4b6e8a;">+ 例句</button>
             <button id="quickAddFullBtn" style="margin-left:8px;">➕ 快速添加</button>
+            <div style="font-weight:600; margin-top:18px;">📚 批量添加</div>
+            <textarea id="batchInput" class="batch-input" placeholder="每行一个：word | 中文意思 | English example | 中文例句翻译&#10;apple | 苹果 | I eat an apple. | 我吃一个苹果。"></textarea>
+            <button id="batchAddBtn" style="margin-top:8px;">➕ 批量添加</button>
+            <div id="batchStatus" class="batch-status hidden"></div>
         </div>
     </div>
 </div>
@@ -411,38 +479,28 @@
         "travel": {
             name: "✈️ 旅行", desc: "机场/观光/问路",
             words: [
-                { word: "destination", meaning: "目的地", phonetic: "/ˌdestɪˈneɪʃn/", pos: "名词", examples: ["Our final destination is Paris, the city of love.", "We reached our destination after a long flight."], videoUrl: "", imageUrl: "https://picsum.photos/id/104/200/150", spellingHint: "des·ti·na·tion" },
-                { word: "itinerary", meaning: "行程", phonetic: "/aɪˈtɪnərəri/", pos: "名词", examples: ["Can you share the travel itinerary with me?", "The itinerary includes a visit to the museum."], videoUrl: "", imageUrl: "https://picsum.photos/id/15/200/150" },
-                { word: "boarding pass", meaning: "登机牌", phonetic: "/ˈbɔːrdɪŋ pæs/", pos: "短语", examples: ["Don't lose your boarding pass before boarding.", "Please show your boarding pass at gate 12."], videoUrl: "", imageUrl: "https://picsum.photos/id/133/200/150" }
+                { word: "destination", meaning: "目的地", phonetic: "/ˌdestɪˈneɪʃn/", pos: "名词", examples: [{ en: "Our final destination is Paris, the city of love.", zh: "我们的最终目的地是巴黎，那座爱之城。" }, { en: "We reached our destination after a long flight.", zh: "经过长途飞行后，我们到达了目的地。" }], videoUrl: "", imageUrl: "https://picsum.photos/id/104/200/150", spellingHint: "des·ti·na·tion" },
+                { word: "itinerary", meaning: "行程", phonetic: "/aɪˈtɪnərəri/", pos: "名词", examples: [{ en: "Can you share the travel itinerary with me?", zh: "你可以把旅行行程分享给我吗？" }, { en: "The itinerary includes a visit to the museum.", zh: "这个行程包括参观博物馆。" }], videoUrl: "", imageUrl: "https://picsum.photos/id/15/200/150" },
+                { word: "boarding pass", meaning: "登机牌", phonetic: "/ˈbɔːrdɪŋ pæs/", pos: "短语", examples: [{ en: "Don't lose your boarding pass before boarding.", zh: "登机前不要弄丢你的登机牌。" }, { en: "Please show your boarding pass at gate 12.", zh: "请在12号登机口出示你的登机牌。" }], videoUrl: "", imageUrl: "https://picsum.photos/id/133/200/150" }
             ]
         },
         "work": {
             name: "💼 职场", desc: "商务/会议",
             words: [
-                { word: "deadline", meaning: "截止期限", phonetic: "/ˈdedlaɪn/", pos: "名词", examples: ["We have to submit the report before the deadline.", "The deadline is approaching quickly."], videoUrl: "", imageUrl: "https://picsum.photos/id/20/200/150" },
-                { word: "negotiate", meaning: "谈判", phonetic: "/nɪˈɡəʊʃieɪt/", pos: "动词", examples: ["It's time to negotiate the contract terms.", "They managed to negotiate a better deal."], videoUrl: "", imageUrl: "https://picsum.photos/id/26/200/150" }
+                { word: "deadline", meaning: "截止期限", phonetic: "/ˈdedlaɪn/", pos: "名词", examples: [{ en: "We have to submit the report before the deadline.", zh: "我们必须在截止日期前提交报告。" }, { en: "The deadline is approaching quickly.", zh: "截止日期很快就要到了。" }], videoUrl: "", imageUrl: "https://picsum.photos/id/20/200/150" },
+                { word: "negotiate", meaning: "谈判", phonetic: "/nɪˈɡəʊʃieɪt/", pos: "动词", examples: [{ en: "It's time to negotiate the contract terms.", zh: "现在该谈判合同条款了。" }, { en: "They managed to negotiate a better deal.", zh: "他们成功谈成了更好的交易。" }], videoUrl: "", imageUrl: "https://picsum.photos/id/26/200/150" }
             ]
         },
         "daily": {
             name: "🏠 日常", desc: "生活口语",
             words: [
-                { word: "groceries", meaning: "杂货", phonetic: "/ˈɡrəʊsəriz/", pos: "名词", examples: ["I need to pick up some groceries after work.", "She bought fresh groceries for dinner."], videoUrl: "", imageUrl: "https://picsum.photos/id/30/200/150" },
-                { word: "commute", meaning: "通勤", phonetic: "/kəˈmjuːt/", pos: "动词", examples: ["My daily commute takes about an hour.", "Many people commute by subway."], videoUrl: "", imageUrl: "https://picsum.photos/id/13/200/150" }
+                { word: "groceries", meaning: "杂货", phonetic: "/ˈɡrəʊsəriz/", pos: "名词", examples: [{ en: "I need to pick up some groceries after work.", zh: "我下班后需要买些杂货。" }, { en: "She bought fresh groceries for dinner.", zh: "她为晚餐买了新鲜食材。" }], videoUrl: "", imageUrl: "https://picsum.photos/id/30/200/150" },
+                { word: "commute", meaning: "通勤", phonetic: "/kəˈmjuːt/", pos: "动词", examples: [{ en: "My daily commute takes about an hour.", zh: "我每天通勤大约需要一小时。" }, { en: "Many people commute by subway.", zh: "很多人乘地铁通勤。" }], videoUrl: "", imageUrl: "https://picsum.photos/id/13/200/150" }
             ]
         }
     };
 
-    // 兼容旧数据，为每个单词增加imageUrl字段
-    for(let k in themesData) {
-        themesData[k].words = themesData[k].words.map(w => {
-            if(!w.examples) w.examples = [w.example || `Example of ${w.word}.`];
-            if(!w.spellingHint) w.spellingHint = w.word.split('').join('·').slice(0,10);
-            if(!w.videoUrl) w.videoUrl = "";
-            if(!w.imageUrl) w.imageUrl = "";
-            delete w.example;
-            return w;
-        });
-    }
+    normalizeAllThemes();
 
     let currentThemeKey = "travel";
     let currentVoiceType = "US";
@@ -451,6 +509,11 @@
     let speechQueue = [];
     let isSpeaking = false;
     const speechSupported = 'speechSynthesis' in window && 'SpeechSynthesisUtterance' in window;
+    const pauseResumeAvailable = speechSupported
+        && typeof window.speechSynthesis.pause === 'function'
+        && typeof window.speechSynthesis.resume === 'function';
+    let speechSessionId = 0;
+    let speechState = "idle";
 
     // DOM
     const themeView = document.getElementById('themeView');
@@ -468,6 +531,78 @@
     const quickAddFullBtn = document.getElementById('quickAddFullBtn');
     const addExampleFieldBtn = document.getElementById('addExampleFieldBtn');
     const addQuickExampleBtn = document.getElementById('addQuickExampleBtn');
+    const speechControlGroup = document.getElementById('speechControlGroup');
+    const pauseResumeBtn = document.getElementById('pauseResumeBtn');
+    const stopSpeechBtn = document.getElementById('stopSpeechBtn');
+    const batchInput = document.getElementById('batchInput');
+    const batchAddBtn = document.getElementById('batchAddBtn');
+    const batchStatus = document.getElementById('batchStatus');
+
+    function normalizeAllThemes() {
+        for(let k in themesData) {
+            themesData[k].words = (themesData[k].words || []).map(normalizeWordRecord);
+        }
+    }
+
+    function normalizeWordRecord(w) {
+        const word = (w.word || '').trim();
+        const examples = normalizeExamples(w.examples || (w.example ? [w.example] : []), word);
+        return {
+            word,
+            meaning: w.meaning || '',
+            phonetic: w.phonetic || '',
+            pos: w.pos || '单词',
+            examples,
+            videoUrl: w.videoUrl || '',
+            imageUrl: w.imageUrl || '',
+            spellingHint: w.spellingHint || word.split('').join('·').slice(0,12)
+        };
+    }
+
+    function normalizeExamples(examples, word) {
+        const source = Array.isArray(examples) && examples.length
+            ? examples
+            : [{ en: `Example using ${word}.`, zh: '' }];
+        return source.map(ex => normalizeExample(ex, word)).filter(ex => ex.en);
+    }
+
+    function normalizeExample(ex, word) {
+        if(typeof ex === 'string') {
+            const en = ex.trim();
+            return { en, zh: getDefaultExampleTranslation(en) };
+        }
+        const en = (ex.en || ex.text || ex.example || '').trim();
+        const zh = (ex.zh || ex.cn || ex.translation || getDefaultExampleTranslation(en)).trim();
+        return { en: en || `Example using ${word}.`, zh };
+    }
+
+    function getDefaultExampleTranslation(en) {
+        const translations = {
+            "Our final destination is Paris, the city of love.": "我们的最终目的地是巴黎，那座爱之城。",
+            "We reached our destination after a long flight.": "经过长途飞行后，我们到达了目的地。",
+            "Can you share the travel itinerary with me?": "你可以把旅行行程分享给我吗？",
+            "The itinerary includes a visit to the museum.": "这个行程包括参观博物馆。",
+            "Don't lose your boarding pass before boarding.": "登机前不要弄丢你的登机牌。",
+            "Please show your boarding pass at gate 12.": "请在12号登机口出示你的登机牌。",
+            "We have to submit the report before the deadline.": "我们必须在截止日期前提交报告。",
+            "The deadline is approaching quickly.": "截止日期很快就要到了。",
+            "It's time to negotiate the contract terms.": "现在该谈判合同条款了。",
+            "They managed to negotiate a better deal.": "他们成功谈成了更好的交易。",
+            "I need to pick up some groceries after work.": "我下班后需要买些杂货。",
+            "She bought fresh groceries for dinner.": "她为晚餐买了新鲜食材。",
+            "My daily commute takes about an hour.": "我每天通勤大约需要一小时。",
+            "Many people commute by subway.": "很多人乘地铁通勤。"
+        };
+        return translations[en] || '';
+    }
+
+    function getExampleEnglish(ex) {
+        return normalizeExample(ex, '').en;
+    }
+
+    function getExampleChinese(ex) {
+        return normalizeExample(ex, '').zh;
+    }
 
     function saveToLocal() { localStorage.setItem('multiex_themes_img', JSON.stringify(themesData)); }
     function loadLocal() {
@@ -476,59 +611,126 @@
             try {
                 let parsed = JSON.parse(data);
                 for(let k in parsed) themesData[k] = parsed[k];
+                normalizeAllThemes();
             } catch(e) {}
         }
     }
 
     // 发音核心
-    function speakText(text) {
+    function setSpeechState(state) {
+        speechState = state;
+        isSpeaking = state === "playing" || state === "paused";
+        updateSpeechControls();
+    }
+
+    function updateSpeechControls() {
+        if(!speechSupported) return;
+        const active = speechState === "playing" || speechState === "paused";
+        speechControlGroup.classList.toggle('hidden', !active);
+        if(!active) return;
+        if(pauseResumeAvailable) {
+            pauseResumeBtn.textContent = speechState === "paused" ? "▶ Resume" : "⏸ Pause";
+            stopSpeechBtn.classList.remove('hidden');
+        } else {
+            pauseResumeBtn.textContent = "⏹ Stop";
+            stopSpeechBtn.classList.add('hidden');
+        }
+    }
+
+    function stopSpeech() {
+        speechSessionId++;
+        if(speechSupported) {
+            window.speechSynthesis.cancel();
+        }
+        setSpeechState("idle");
+    }
+
+    function togglePauseResumeSpeech() {
+        if(!speechSupported) return;
+        if(!pauseResumeAvailable) {
+            stopSpeech();
+            return;
+        }
+        if(speechState === "playing") {
+            window.speechSynthesis.pause();
+            setSpeechState("paused");
+        } else if(speechState === "paused") {
+            window.speechSynthesis.resume();
+            setSpeechState("playing");
+        }
+    }
+
+    function waitBetweenSpeech(ms, sessionId) {
+        return new Promise(resolve => {
+            setTimeout(() => resolve(sessionId === speechSessionId), ms);
+        });
+    }
+
+    function speakTextOnce(text, sessionId) {
         return new Promise((resolve) => {
-            if(!speechSupported) { resolve(); return; }
-            if(!text.trim()) { resolve(); return; }
-            let utterance = new SpeechSynthesisUtterance(text);
+            if(!speechSupported || sessionId !== speechSessionId) { resolve(false); return; }
+            const cleanText = (text || '').trim();
+            if(!cleanText) { resolve(true); return; }
+            let utterance = new SpeechSynthesisUtterance(cleanText);
             utterance.lang = currentVoiceType === "US" ? "en-US" : "en-GB";
             utterance.rate = 0.9;
-            utterance.onend = () => { resolve(); };
-            utterance.onerror = () => { resolve(); };
-            window.speechSynthesis.cancel();
+            utterance.onstart = () => {
+                if(sessionId === speechSessionId) setSpeechState("playing");
+            };
+            utterance.onend = () => { resolve(sessionId === speechSessionId); };
+            utterance.onerror = () => { resolve(false); };
             window.speechSynthesis.speak(utterance);
         });
     }
 
+    async function playSpeechTexts(texts, gapMs = 200) {
+        stopSpeech();
+        const queue = texts.map(text => (text || '').trim()).filter(Boolean);
+        if(!speechSupported || !queue.length) return;
+        const sessionId = ++speechSessionId;
+        speechQueue = queue;
+        setSpeechState("playing");
+        for(let text of queue) {
+            if(sessionId !== speechSessionId) break;
+            const finished = await speakTextOnce(text, sessionId);
+            if(!finished || sessionId !== speechSessionId) break;
+            const stillCurrent = await waitBetweenSpeech(gapMs, sessionId);
+            if(!stillCurrent) break;
+        }
+        if(sessionId === speechSessionId) {
+            speechQueue = [];
+            setSpeechState("idle");
+        }
+    }
+
+    function speakText(text) {
+        return playSpeechTexts([text], 200);
+    }
+
     async function playWordAndExamples(wordObj, mode, repeats) {
-        let tasks = [];
+        let texts = [];
         if(mode === "word_only") {
-            for(let i=0; i<repeats; i++) tasks.push(() => speakText(wordObj.word));
-        } 
+            for(let i=0; i<repeats; i++) texts.push(wordObj.word);
+        }
         else if(mode === "examples_only") {
             for(let r=0; r<repeats; r++) {
-                for(let ex of wordObj.examples) tasks.push(() => speakText(ex));
+                for(let ex of wordObj.examples) texts.push(getExampleEnglish(ex));
             }
         }
         else if(mode === "word_then_examples") {
             for(let cycle=0; cycle<repeats; cycle++) {
-                tasks.push(() => speakText(wordObj.word));
-                for(let ex of wordObj.examples) tasks.push(() => speakText(ex));
+                texts.push(wordObj.word);
+                for(let ex of wordObj.examples) texts.push(getExampleEnglish(ex));
             }
         }
-        for(let task of tasks) {
-            if(isSpeaking) window.speechSynthesis.cancel();
-            await task();
-            await new Promise(r => setTimeout(r, 300));
-        }
+        await playSpeechTexts(texts, 300);
     }
 
     async function playSingleWord(word, repeats) {
-        for(let i=0; i<repeats; i++) {
-            await speakText(word);
-            await new Promise(r => setTimeout(r, 200));
-        }
+        await playSpeechTexts(Array(repeats).fill(word), 200);
     }
     async function playSingleExample(exampleText, repeats) {
-        for(let i=0; i<repeats; i++) {
-            await speakText(exampleText);
-            await new Promise(r => setTimeout(r, 200));
-        }
+        await playSpeechTexts(Array(repeats).fill(exampleText), 200);
     }
 
     // 渲染单词列表 (带图片右侧)
@@ -556,12 +758,17 @@
             // 例句HTML
             let examplesHtml = `<div class="examples-section"><strong>📌 场景例句 (${wordObj.examples.length})：</strong>`;
             wordObj.examples.forEach((ex, exIdx) => {
+                const exEnglish = getExampleEnglish(ex);
+                const exChinese = getExampleChinese(ex);
                 const exampleReadButtonHtml = speechSupported
                     ? `<button class="btn-sm play-example-btn" data-word-idx="${idx}" data-ex-idx="${exIdx}" type="button">🔊 跟读此例句</button>`
                     : '';
                 examplesHtml += `
                     <div class="example-item">
-                        <span class="example-text">💬 ${escapeHtml(ex)}</span>
+                        <div class="example-copy">
+                            <span class="example-text">💬 ${escapeHtml(exEnglish)}</span>
+                            ${exChinese ? `<span class="example-translation">中文：${escapeHtml(exChinese)}</span>` : ''}
+                        </div>
                         ${exampleReadButtonHtml}
                     </div>
                 `;
@@ -588,6 +795,7 @@
             const smartPlayButtonHtml = speechSupported
                 ? `<button class="btn-sm smart-play-btn" data-word-idx="${idx}" type="button">⚡ 智能跟读 (按当前模式+重复)</button>`
                 : '';
+            const deleteButtonHtml = `<button class="btn-sm delete-word-btn" data-word-idx="${idx}" type="button">🗑 Delete</button>`;
             contentDiv.innerHTML = `
                 <div class="word-header">
                     <div class="word-title">${escapeHtml(wordObj.word)} <span class="badge">${wordObj.pos || '单词'}</span></div>
@@ -597,8 +805,9 @@
                 <div class="spelling-hint" style="font-size:0.7rem; color:#6c8eae;">🔡 自然拼读: ${wordObj.spellingHint || wordObj.word}</div>
                 ${examplesHtml}
                 ${videoHtml}
-                <div style="margin-top:12px; display:flex; gap:8px; justify-content:flex-end;">
+                <div class="word-actions">
                     ${smartPlayButtonHtml}
+                    ${deleteButtonHtml}
                 </div>
             `;
             card.appendChild(contentDiv);
@@ -618,7 +827,7 @@
                 let wordIdx = parseInt(btn.dataset.wordIdx);
                 let exIdx = parseInt(btn.dataset.exIdx);
                 let exText = themesData[currentThemeKey].words[wordIdx].examples[exIdx];
-                await playSingleExample(exText, repeatCount);
+                await playSingleExample(getExampleEnglish(exText), repeatCount);
             });
         });
         document.querySelectorAll('.smart-play-btn').forEach(btn => {
@@ -627,6 +836,12 @@
                 let wordObj = themesData[currentThemeKey].words[idx];
                 let mode = playModeSelect.value;
                 await playWordAndExamples(wordObj, mode, repeatCount);
+            });
+        });
+        document.querySelectorAll('.delete-word-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                let idx = parseInt(btn.dataset.wordIdx);
+                deleteWord(idx);
             });
         });
     }
@@ -651,29 +866,42 @@
     function addWordToCurrentTheme(wordObj) {
         let theme = themesData[currentThemeKey];
         if(!theme) theme = themesData[Object.keys(themesData)[0]];
-        let newWord = {
-            word: wordObj.word,
-            meaning: wordObj.meaning,
-            phonetic: wordObj.phonetic || '',
-            pos: wordObj.pos || '单词',
-            examples: wordObj.examples && wordObj.examples.length ? wordObj.examples : ["例句待补充"],
-            videoUrl: wordObj.videoUrl || '',
-            imageUrl: wordObj.imageUrl || '',
-            spellingHint: wordObj.word.split('').join('·').slice(0,12)
-        };
-        theme.words.push(newWord);
+        theme.words.push(normalizeWordRecord(wordObj));
         saveToLocal();
         if(wordView.classList.contains('hidden')) renderThemeSelection();
         else renderWords();
     }
 
+    function addWordsToCurrentTheme(wordObjs) {
+        let theme = themesData[currentThemeKey];
+        if(!theme) theme = themesData[Object.keys(themesData)[0]];
+        wordObjs.forEach(wordObj => theme.words.push(normalizeWordRecord(wordObj)));
+        saveToLocal();
+        if(wordView.classList.contains('hidden')) renderThemeSelection();
+        else renderWords();
+    }
+
+    function deleteWord(idx) {
+        let theme = themesData[currentThemeKey];
+        if(!theme || !theme.words[idx]) return;
+        let word = theme.words[idx].word;
+        if(!confirm(`删除 "${word}" 吗？`)) return;
+        stopSpeech();
+        theme.words.splice(idx, 1);
+        saveToLocal();
+        renderWords();
+        renderThemeSelection();
+    }
+
     // 表单收集多例句
-    function collectFormExamples() {
+    function collectFormExamples(word) {
         let examples = [];
-        document.querySelectorAll('#dynamicExamplesContainer .example-input').forEach(inp => {
-            if(inp.value.trim()) examples.push(inp.value.trim());
+        document.querySelectorAll('#dynamicExamplesContainer .example-input-group').forEach(row => {
+            const en = row.querySelector('.example-input')?.value.trim();
+            const zh = row.querySelector('.example-zh-input')?.value.trim();
+            if(en || zh) examples.push({ en: en || `Example using ${word}.`, zh: zh || '' });
         });
-        if(examples.length === 0) examples.push("新建的示例句子，快来替换它！");
+        if(examples.length === 0) examples.push({ en: `Example using ${word}.`, zh: '' });
         return examples;
     }
 
@@ -682,7 +910,7 @@
         container.innerHTML = '';
         let div = document.createElement('div');
         div.className = 'form-row example-input-group';
-        div.innerHTML = `<input type="text" class="example-input" placeholder="例句1: 贴合主题的句子" style="flex:4;"><button type="button" class="removeExampleBtn" style="background:#b91c1c; padding:6px 12px;" disabled>✖</button>`;
+        div.innerHTML = `<input type="text" class="example-input" placeholder="English example"><input type="text" class="example-zh-input" placeholder="中文例句翻译"><button type="button" class="removeExampleBtn" style="background:#b91c1c; padding:6px 12px;" disabled>✖</button>`;
         container.appendChild(div);
     }
 
@@ -690,7 +918,7 @@
         let container = document.getElementById(containerId);
         let div = document.createElement('div');
         div.className = 'form-row example-input-group';
-        div.innerHTML = `<input type="text" class="example-input" placeholder="新例句" style="flex:4;"><button type="button" class="removeExampleBtn" style="background:#b91c1c; padding:6px 12px;">✖</button>`;
+        div.innerHTML = `<input type="text" class="example-input" placeholder="English example"><input type="text" class="example-zh-input" placeholder="中文例句翻译"><button type="button" class="removeExampleBtn" style="background:#b91c1c; padding:6px 12px;">✖</button>`;
         let removeBtn = div.querySelector('.removeExampleBtn');
         removeBtn.addEventListener('click', () => { div.remove(); });
         container.appendChild(div);
@@ -701,13 +929,52 @@
         let area = document.getElementById('quickExamplesArea');
         area.innerHTML = '';
         for(let i=1; i<=quickExampleCount; i++) {
-            let inp = document.createElement('input');
-            inp.type = 'text';
-            inp.placeholder = `例句${i}`;
-            inp.id = `quickEx${i}`;
-            inp.style.marginBottom = '5px';
-            area.appendChild(inp);
+            let row = document.createElement('div');
+            row.className = 'form-row example-input-group';
+            row.innerHTML = `<input type="text" id="quickExEn${i}" placeholder="English example ${i}"><input type="text" id="quickExZh${i}" placeholder="中文例句翻译 ${i}">`;
+            area.appendChild(row);
         }
+    }
+
+    function parseBatchInput(text) {
+        const words = [];
+        const skipped = [];
+        text.split(/\r?\n/).forEach((line, index) => {
+            const trimmed = line.trim();
+            if(!trimmed) return;
+            const parts = trimmed.split('|').map(part => part.trim());
+            const word = parts[0] || '';
+            const meaning = parts[1] || '';
+            const exampleEn = parts[2] || '';
+            const exampleZh = parts.slice(3).join(' | ').trim();
+            if(!word || !meaning || !exampleEn || !exampleZh) {
+                skipped.push(index + 1);
+                return;
+            }
+            words.push({
+                word,
+                meaning,
+                phonetic: '',
+                pos: '批量',
+                examples: [{ en: exampleEn, zh: exampleZh }],
+                videoUrl: '',
+                imageUrl: ''
+            });
+        });
+        return { words, skipped };
+    }
+
+    function showBatchStatus(result) {
+        batchStatus.classList.remove('hidden');
+        if(!batchInput.value.trim() && !result.words.length && !result.skipped.length) {
+            batchStatus.textContent = '先粘贴几行单词，再点击批量添加。';
+            return;
+        }
+        let message = result.words.length ? `已添加 ${result.words.length} 个单词。` : '没有添加新单词。';
+        if(result.skipped.length) {
+            message += ` 跳过第 ${result.skipped.join(', ')} 行：请使用 word | 中文意思 | English example | 中文例句翻译。`;
+        }
+        batchStatus.textContent = message;
     }
 
     function bindEvents() {
@@ -716,6 +983,8 @@
         ukBtn.addEventListener('click', () => { currentVoiceType = "UK"; ukBtn.classList.add('voice-active'); usBtn.classList.remove('voice-active'); });
         usBtn.addEventListener('click', () => { currentVoiceType = "US"; usBtn.classList.add('voice-active'); ukBtn.classList.remove('voice-active'); });
         backBtn.addEventListener('click', () => { themeView.classList.remove('hidden'); wordView.classList.add('hidden'); renderThemeSelection(); });
+        pauseResumeBtn.addEventListener('click', togglePauseResumeSpeech);
+        stopSpeechBtn.addEventListener('click', stopSpeech);
 
         submitNewWordBtn.addEventListener('click', () => {
             let word = document.getElementById('newWord').value.trim();
@@ -725,7 +994,7 @@
             let pos = document.getElementById('newPos').value;
             let videoUrl = document.getElementById('newVideoUrl').value;
             let imageUrl = document.getElementById('newImageUrl').value;
-            let examples = collectFormExamples();
+            let examples = collectFormExamples(word);
             addWordToCurrentTheme({ word, meaning, phonetic, pos, examples, videoUrl, imageUrl });
             alert(`✅ 已添加 "${word}" 至 ${themesData[currentThemeKey].name}`);
             document.getElementById('newWord').value = '';
@@ -744,20 +1013,30 @@
             if(!word || !meaning) { alert("请填写单词和释义"); return; }
             let examples = [];
             for(let i=1; i<=quickExampleCount; i++) {
-                let exVal = document.getElementById(`quickEx${i}`)?.value.trim();
-                if(exVal) examples.push(exVal);
+                let enVal = document.getElementById(`quickExEn${i}`)?.value.trim();
+                let zhVal = document.getElementById(`quickExZh${i}`)?.value.trim();
+                if(enVal || zhVal) examples.push({ en: enVal || `Example using ${word}.`, zh: zhVal || '' });
             }
-            if(examples.length === 0) examples.push(`Example using ${word}`);
+            if(examples.length === 0) examples.push({ en: `Example using ${word}.`, zh: '' });
             addWordToCurrentTheme({ word, meaning, phonetic: "", pos: "自定义", examples, videoUrl: "", imageUrl });
             document.getElementById('quickWord').value = '';
             document.getElementById('quickMeaning').value = '';
             document.getElementById('quickImageUrl').value = '';
+            quickExampleCount = 1;
             refreshQuickExamples();
             renderWords();
         });
         addQuickExampleBtn.addEventListener('click', () => {
             quickExampleCount++;
             refreshQuickExamples();
+        });
+        batchAddBtn.addEventListener('click', () => {
+            const result = parseBatchInput(batchInput.value);
+            if(result.words.length) {
+                addWordsToCurrentTheme(result.words);
+                batchInput.value = '';
+            }
+            showBatchStatus(result);
         });
     }
 
