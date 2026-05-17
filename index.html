@@ -465,9 +465,9 @@
             </div>
             <button id="addQuickExampleBtn" style="background:#4b6e8a;">+ 例句</button>
             <button id="quickAddFullBtn" style="margin-left:8px;">➕ 快速添加</button>
-            <div style="font-weight:600; margin-top:18px;">📚 批量添加</div>
-            <textarea id="batchInput" class="batch-input" placeholder="每行一个：word | 中文意思 | English example | 中文例句翻译&#10;apple | 苹果 | I eat an apple. | 我吃一个苹果。"></textarea>
-            <button id="batchAddBtn" style="margin-top:8px;">➕ 批量添加</button>
+            <div style="font-weight:600; margin-top:18px;">📚 批量添加单词</div>
+            <textarea id="batchInput" class="batch-input" placeholder="每行一个：word | 中文意思 | English example | 中文例句翻译&#10;clever | 聪明的 | The clever boy solved the problem. | 这个聪明的男孩解决了问题。&#10;forest | 森林 | The rabbit ran into the forest. | 兔子跑进了森林。"></textarea>
+            <button id="batchAddBtn" style="margin-top:8px;">导入</button>
             <div id="batchStatus" class="batch-status hidden"></div>
         </div>
     </div>
@@ -546,7 +546,7 @@
 
     function normalizeWordRecord(w) {
         const word = (w.word || '').trim();
-        const examples = normalizeExamples(w.examples || (w.example ? [w.example] : []), word);
+        const examples = normalizeExamples(w.examples || (w.example ? [w.example] : []), word, w.skipDefaultExample);
         return {
             word,
             meaning: w.meaning || '',
@@ -559,11 +559,11 @@
         };
     }
 
-    function normalizeExamples(examples, word) {
+    function normalizeExamples(examples, word, skipDefaultExample = false) {
         const source = Array.isArray(examples) && examples.length
             ? examples
-            : [{ en: `Example using ${word}.`, zh: '' }];
-        return source.map(ex => normalizeExample(ex, word)).filter(ex => ex.en);
+            : (skipDefaultExample ? [] : [{ en: `Example using ${word}.`, zh: '' }]);
+        return source.map(ex => normalizeExample(ex, word)).filter(ex => ex.en || ex.zh);
     }
 
     function normalizeExample(ex, word) {
@@ -573,6 +573,7 @@
         }
         const en = (ex.en || ex.text || ex.example || '').trim();
         const zh = (ex.zh || ex.cn || ex.translation || getDefaultExampleTranslation(en)).trim();
+        if(ex.allowEmpty) return { en, zh, allowEmpty: true };
         return { en: en || `Example using ${word}.`, zh };
     }
 
@@ -760,13 +761,13 @@
             wordObj.examples.forEach((ex, exIdx) => {
                 const exEnglish = getExampleEnglish(ex);
                 const exChinese = getExampleChinese(ex);
-                const exampleReadButtonHtml = speechSupported
+                const exampleReadButtonHtml = speechSupported && exEnglish
                     ? `<button class="btn-sm play-example-btn" data-word-idx="${idx}" data-ex-idx="${exIdx}" type="button">🔊 跟读此例句</button>`
                     : '';
                 examplesHtml += `
                     <div class="example-item">
                         <div class="example-copy">
-                            <span class="example-text">💬 ${escapeHtml(exEnglish)}</span>
+                            ${exEnglish ? `<span class="example-text">💬 ${escapeHtml(exEnglish)}</span>` : ''}
                             ${exChinese ? `<span class="example-translation">中文：${escapeHtml(exChinese)}</span>` : ''}
                         </div>
                         ${exampleReadButtonHtml}
@@ -938,41 +939,60 @@
 
     function parseBatchInput(text) {
         const words = [];
-        const skipped = [];
+        const invalidLines = [];
+        const duplicateWords = [];
+        const theme = themesData[currentThemeKey];
+        const seenWords = new Set((theme?.words || []).map(item => (item.word || '').trim().toLowerCase()));
+
         text.split(/\r?\n/).forEach((line, index) => {
             const trimmed = line.trim();
             if(!trimmed) return;
             const parts = trimmed.split('|').map(part => part.trim());
+            if(parts.length < 2) {
+                invalidLines.push(index + 1);
+                return;
+            }
             const word = parts[0] || '';
             const meaning = parts[1] || '';
             const exampleEn = parts[2] || '';
             const exampleZh = parts.slice(3).join(' | ').trim();
-            if(!word || !meaning || !exampleEn || !exampleZh) {
-                skipped.push(index + 1);
+            if(!word || !meaning) {
+                invalidLines.push(index + 1);
                 return;
             }
+
+            const wordKey = word.toLowerCase();
+            if(seenWords.has(wordKey)) {
+                duplicateWords.push(word);
+                return;
+            }
+            seenWords.add(wordKey);
             words.push({
                 word,
                 meaning,
                 phonetic: '',
                 pos: '批量',
-                examples: [{ en: exampleEn, zh: exampleZh }],
+                examples: (exampleEn || exampleZh) ? [{ en: exampleEn, zh: exampleZh, allowEmpty: true }] : [],
+                skipDefaultExample: !exampleEn && !exampleZh,
                 videoUrl: '',
                 imageUrl: ''
             });
         });
-        return { words, skipped };
+        return { words, invalidLines, duplicateWords };
     }
 
     function showBatchStatus(result) {
         batchStatus.classList.remove('hidden');
-        if(!batchInput.value.trim() && !result.words.length && !result.skipped.length) {
+        if(!batchInput.value.trim() && !result.words.length && !result.invalidLines.length && !result.duplicateWords.length) {
             batchStatus.textContent = '先粘贴几行单词，再点击批量添加。';
             return;
         }
-        let message = result.words.length ? `已添加 ${result.words.length} 个单词。` : '没有添加新单词。';
-        if(result.skipped.length) {
-            message += ` 跳过第 ${result.skipped.join(', ')} 行：请使用 word | 中文意思 | English example | 中文例句翻译。`;
+        let message = `已添加 ${result.words.length} 个单词。跳过 ${result.invalidLines.length} 行格式不完整。跳过 ${result.duplicateWords.length} 个重复单词。`;
+        if(result.invalidLines.length) {
+            message += ` 无效行：${result.invalidLines.join(', ')}。`;
+        }
+        if(result.duplicateWords.length) {
+            message += ` 重复：${result.duplicateWords.join(', ')}。`;
         }
         batchStatus.textContent = message;
     }
