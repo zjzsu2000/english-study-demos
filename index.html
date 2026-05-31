@@ -402,7 +402,7 @@
             </div>
             <div class="form-row">
                 <input type="text" id="newPhonetic" placeholder="音标 (可选)">
-                <select id="newPos"><option>名词</option><option>动词</option><option>形容词</option><option>副词</option><option>短语</option></select>
+                <select id="newPos"><option>名词</option><option>动词</option><option>形容词</option><option>副词</option><option>介词</option><option>连词</option><option>代词</option><option>短语</option><option>其他</option></select>
             </div>
             <div class="form-row">
                 <input type="text" id="newImageUrl" placeholder="图片URL (可选) 直接粘贴图片链接">
@@ -455,7 +455,11 @@
         <div id="wordsContainer"></div>
         <div class="add-word-section" style="margin-top:12px;">
             <div style="font-weight:600;">✨ 快速添加单词（含图片）</div>
-            <div class="form-row"><input id="quickWord" placeholder="单词"><input id="quickMeaning" placeholder="释义"></div>
+            <div class="form-row">
+                <input id="quickWord" placeholder="单词">
+                <select id="quickPos" aria-label="词性"><option>名词</option><option>动词</option><option>形容词</option><option>副词</option><option>介词</option><option>连词</option><option>代词</option><option>短语</option><option>其他</option></select>
+                <input id="quickMeaning" placeholder="释义">
+            </div>
             <div class="form-row"><input id="quickImageUrl" placeholder="图片URL (可选)"></div>
             <div id="quickExamplesArea">
                 <div class="form-row example-input-group">
@@ -466,7 +470,7 @@
             <button id="addQuickExampleBtn" style="background:#4b6e8a;">+ 例句</button>
             <button id="quickAddFullBtn" style="margin-left:8px;">➕ 快速添加</button>
             <div style="font-weight:600; margin-top:18px;">📚 批量添加单词</div>
-            <textarea id="batchInput" class="batch-input" placeholder="每行一个：word | 中文意思 | English example | 中文例句翻译&#10;clever | 聪明的 | The clever boy solved the problem. | 这个聪明的男孩解决了问题。&#10;forest | 森林 | The rabbit ran into the forest. | 兔子跑进了森林。"></textarea>
+            <textarea id="batchInput" class="batch-input" placeholder="每行一个：word | 词性 | 中文意思 | English example | 中文例句翻译&#10;clever | 形容词 | 聪明的 | The clever boy solved the problem. | 这个聪明的男孩解决了问题。&#10;forest | 名词 | 森林 | The rabbit ran into the forest. | 兔子跑进了森林。"></textarea>
             <button id="batchAddBtn" style="margin-top:8px;">导入</button>
             <div id="batchStatus" class="batch-status hidden"></div>
         </div>
@@ -499,6 +503,43 @@
             ]
         }
     };
+
+    const posAliases = {
+        'n': '名词',
+        'n.': '名词',
+        'noun': '名词',
+        'v': '动词',
+        'v.': '动词',
+        'verb': '动词',
+        'adj': '形容词',
+        'adj.': '形容词',
+        'adjective': '形容词',
+        'adv': '副词',
+        'adv.': '副词',
+        'adverb': '副词',
+        'prep': '介词',
+        'prep.': '介词',
+        'preposition': '介词',
+        'conj': '连词',
+        'conj.': '连词',
+        'conjunction': '连词',
+        'pron': '代词',
+        'pron.': '代词',
+        'pronoun': '代词',
+        'phrase': '短语'
+    };
+    const knownPartsOfSpeech = new Set([
+        '名词',
+        '动词',
+        '形容词',
+        '副词',
+        '介词',
+        '连词',
+        '代词',
+        '短语',
+        '其他',
+        ...Object.keys(posAliases)
+    ]);
 
     normalizeAllThemes();
 
@@ -551,12 +592,24 @@
             word,
             meaning: w.meaning || '',
             phonetic: w.phonetic || '',
-            pos: w.pos || '单词',
+            pos: normalizePartOfSpeech(w.pos, '单词'),
             examples,
             videoUrl: w.videoUrl || '',
             imageUrl: w.imageUrl || '',
             spellingHint: w.spellingHint || word.split('').join('·').slice(0,12)
         };
+    }
+
+    function normalizePartOfSpeech(pos, fallback = '单词') {
+        const raw = (pos || '').trim();
+        if(!raw) return fallback;
+        return posAliases[raw.toLowerCase()] || raw;
+    }
+
+    function looksLikePartOfSpeech(value) {
+        const raw = (value || '').trim();
+        if(!raw) return false;
+        return knownPartsOfSpeech.has(raw) || knownPartsOfSpeech.has(raw.toLowerCase());
     }
 
     function normalizeExamples(examples, word, skipDefaultExample = false) {
@@ -952,10 +1005,12 @@
                 invalidLines.push(index + 1);
                 return;
             }
+            const hasExplicitPos = parts.length >= 3 && looksLikePartOfSpeech(parts[1]);
             const word = parts[0] || '';
-            const meaning = parts[1] || '';
-            const exampleEn = parts[2] || '';
-            const exampleZh = parts.slice(3).join(' | ').trim();
+            const pos = hasExplicitPos ? normalizePartOfSpeech(parts[1], '批量') : '批量';
+            const meaning = hasExplicitPos ? (parts[2] || '') : (parts[1] || '');
+            const exampleEn = hasExplicitPos ? (parts[3] || '') : (parts[2] || '');
+            const exampleZh = (hasExplicitPos ? parts.slice(4) : parts.slice(3)).join(' | ').trim();
             if(!word || !meaning) {
                 invalidLines.push(index + 1);
                 return;
@@ -971,7 +1026,7 @@
                 word,
                 meaning,
                 phonetic: '',
-                pos: '批量',
+                pos,
                 examples: (exampleEn || exampleZh) ? [{ en: exampleEn, zh: exampleZh, allowEmpty: true }] : [],
                 skipDefaultExample: !exampleEn && !exampleZh,
                 videoUrl: '',
@@ -1029,6 +1084,7 @@
         quickAddFullBtn.addEventListener('click', () => {
             let word = document.getElementById('quickWord').value.trim();
             let meaning = document.getElementById('quickMeaning').value.trim();
+            let pos = normalizePartOfSpeech(document.getElementById('quickPos').value, '单词');
             let imageUrl = document.getElementById('quickImageUrl').value.trim();
             if(!word || !meaning) { alert("请填写单词和释义"); return; }
             let examples = [];
@@ -1038,9 +1094,10 @@
                 if(enVal || zhVal) examples.push({ en: enVal || `Example using ${word}.`, zh: zhVal || '' });
             }
             if(examples.length === 0) examples.push({ en: `Example using ${word}.`, zh: '' });
-            addWordToCurrentTheme({ word, meaning, phonetic: "", pos: "自定义", examples, videoUrl: "", imageUrl });
+            addWordToCurrentTheme({ word, meaning, phonetic: "", pos, examples, videoUrl: "", imageUrl });
             document.getElementById('quickWord').value = '';
             document.getElementById('quickMeaning').value = '';
+            document.getElementById('quickPos').value = '名词';
             document.getElementById('quickImageUrl').value = '';
             quickExampleCount = 1;
             refreshQuickExamples();
